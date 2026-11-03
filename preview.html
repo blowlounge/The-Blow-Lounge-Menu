@@ -1,0 +1,1133 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>THE BLOW | Food & Cocktail Menu Editor</title>
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #eef0f3;
+  color: #202936;
+  font-family: Arial, sans-serif;
+}
+
+header {
+  background: #142b25;
+  color: white;
+  text-align: center;
+  padding: 24px 15px;
+}
+
+header h1 { margin: 0 0 7px; letter-spacing: 2px; }
+header p { margin: 0; color: #d2e2d9; }
+
+main {
+  max-width: 1250px;
+  margin: 24px auto;
+  padding: 0 16px 40px;
+}
+
+.panel {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 12px #00000012;
+}
+
+h2 { margin-top: 0; font-size: 20px; }
+
+.notice {
+  padding: 13px;
+  border-left: 4px solid #bb8b27;
+  background: #fff5d7;
+  border-radius: 6px;
+  line-height: 1.6;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 7px;
+}
+
+input, select {
+  width: 100%;
+  border: 1px solid #cbd3da;
+  border-radius: 7px;
+  padding: 10px;
+  font-size: 15px;
+}
+
+input[type="color"] { height: 43px; padding: 4px; }
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 15px;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+button {
+  cursor: pointer;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 7px;
+  background: #e3e8ed;
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+button:hover { filter: brightness(.95); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+
+.primary { background: #176b42; color: white; }
+.blue { background: #2157a5; color: white; }
+.danger { background: #a83a34; color: white; }
+
+.stage {
+  overflow: auto;
+  max-height: 75vh;
+  padding: 15px;
+  background: #d5d9df;
+  border: 1px solid #cbd3da;
+  border-radius: 9px;
+}
+
+.canvas-wrap {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  user-select: none;
+}
+
+canvas {
+  display: block;
+  max-width: none;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+#selection {
+  display: none;
+  position: absolute;
+  border: 2px dashed #ed3636;
+  background: #ed363622;
+  pointer-events: none;
+}
+
+.small {
+  font-size: 13px;
+  line-height: 1.65;
+  color: #526173;
+}
+
+.status {
+  margin-top: 14px;
+  padding: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #f1f5f9;
+  border-radius: 8px;
+  line-height: 1.6;
+}
+
+.menu-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.menu-tabs button {
+  flex: 1;
+  min-width: 160px;
+  border: 2px solid #d1d5db;
+}
+
+.menu-tabs button.active {
+  background: #142b25;
+  color: white;
+  border-color: #142b25;
+}
+
+@media (max-width: 600px) {
+  .buttons button { flex: 1 1 100%; }
+}
+
+/* Responsive editor layout for phones, tablets, and desktop screens. */
+html { -webkit-text-size-adjust: 100%; }
+body { min-width: 320px; }
+main { width: 100%; }
+.panel { min-width: 0; }
+.stage {
+  max-width: 100%;
+  max-height: 62vh;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y;
+}
+.canvas-wrap { max-width: none; }
+canvas { touch-action: none; }
+input, select, button { min-height: 44px; }
+input, select { font-size: 16px; }
+button { touch-action: manipulation; }
+#selectMode { display: none; }
+@media (pointer: coarse) { #selectMode { display: block; } }
+.status { overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  header { padding: 19px 12px; }
+  header h1 { font-size: clamp(23px, 7vw, 32px); }
+  main { margin: 12px auto; padding: 0 10px 24px; }
+  .panel { padding: 14px; margin-bottom: 12px; border-radius: 10px; }
+  h2 { font-size: 18px; line-height: 1.3; }
+  .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .controls > div { min-width: 0; }
+  label { font-size: 12px; line-height: 1.35; }
+  .buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .buttons button { width: 100%; min-width: 0; padding: 11px 8px; font-size: 13px; }
+  .menu-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .menu-tabs button { min-width: 0; padding: 11px 7px; font-size: 13px; }
+  .stage { max-height: 58vh; padding: 7px; }
+  .small { font-size: 12px; }
+  .status { padding: 11px; font-size: 13px; }
+}
+@media (max-width: 420px) {
+  main { padding-inline: 7px; }
+  .panel { padding: 11px; }
+  .controls { grid-template-columns: minmax(0, 1fr); }
+  .buttons button { font-size: 12px; }
+  .menu-tabs button { font-size: 12px; }
+  .stage { max-height: 54vh; }
+}
+
+
+/* Phone-first editing controls and gesture navigation. */
+#newPrice { min-height:56px; font-size:22px; font-weight:700; letter-spacing:.3px; }
+#selectMode { min-height:48px; }
+.stage { position:relative; touch-action:none; cursor:grab; }
+.stage.is-panning { cursor:grabbing; }
+.canvas-wrap { touch-action:none; }
+@media (max-width:760px) {
+  #newPrice { font-size:24px; min-height:60px; }
+  #prepare, #apply { min-height:52px; font-size:15px; }
+  #selectMode { grid-column:1 / -1; min-height:52px; font-size:15px; }
+  .stage { max-height:68vh; min-height:260px; padding:8px; }
+  .panel:nth-of-type(2) .controls { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .panel:nth-of-type(2) .controls > div:first-child { grid-column:1 / -1; }
+}
+@media (max-width:420px) {
+  .panel:nth-of-type(2) .controls { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .panel:nth-of-type(2) .controls > div:first-child { grid-column:1 / -1; }
+  .buttons { gap:7px; }
+  .buttons button { padding:12px 6px; }
+}
+
+</style>
+</head>
+<body>
+
+<header>
+  <h1>THE BLOW</h1>
+  <p>Food & Cocktail Menu Price Editor</p>
+</header>
+
+<main>
+
+<section class="panel">
+  <h2>1. Choose Menu & Select Price</h2>
+
+  <div class="menu-tabs">
+    <button id="foodTab" class="active">Food Menu</button>
+    <button id="cocktailTab">Cocktail Menu</button>
+  </div>
+
+  <div class="buttons">
+    <button id="zoomOut">− Zoom Out</button>
+    <button id="zoomIn">+ Zoom In</button>
+    <button id="resetZoom">Fit Screen</button>
+    <button id="selectMode" class="blue" type="button">Select Price Area</button>
+  </div>
+
+  <p class="small" id="imageInfo">No menu loaded.</p>
+
+  <p class="small">
+    On a phone: pinch with two fingers to zoom, drag with one finger to move around, then tap Select Price Area and drag around the old price.
+  </p>
+
+  <div class="stage">
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="menuCanvas"></canvas>
+      <div id="selection"></div>
+    </div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>2. Edit Selected Price</h2>
+
+  <div class="controls">
+    <div>
+      <label for="newPrice">Enter the new price</label>
+      <input id="newPrice" type="text" value="">
+    </div>
+
+    <div>
+      <label for="fontSize">Font size (original pixels)</label>
+      <input id="fontSize" type="number" min="1" max="300" value="18">
+    </div>
+
+    <div>
+      <label for="fontFamily">Font family</label>
+      <select id="fontFamily">
+        <option value="Arial" selected>Arial</option>
+        <option value="Georgia">Georgia</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Verdana">Verdana</option>
+        <option value="Tahoma">Tahoma</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="fontWeight">Font weight</label>
+      <select id="fontWeight">
+        <option value="normal">Normal</option>
+        <option value="bold" selected>Bold</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="textColor">Text color</label>
+      <input id="textColor" type="color" value="#F4D58C">
+    </div>
+
+    <div>
+      <label for="bgColor">Background color</label>
+      <input id="bgColor" type="color" value="#000000">
+    </div>
+
+    <div>
+      <label for="offsetX">Text horizontal adjustment (px)</label>
+      <input id="offsetX" type="number" value="0">
+    </div>
+
+    <div>
+      <label for="offsetY">Text vertical adjustment (px)</label>
+      <input id="offsetY" type="number" value="2">
+    </div>
+  </div>
+
+  <div class="buttons">
+    <button class="blue" id="prepare">PREVIEW CHANGE</button>
+    <button class="primary" id="apply">DO / APPLY</button>
+    <button class="danger" id="undo">UNDO</button>
+    <button id="restore">Restore Original Menu</button>
+  </div>
+
+  <div class="status" id="status">
+    Loading the latest menu from GitHub...
+  </div>
+</section>
+
+<section class="panel">
+  <h2>3. Download Updated Files</h2>
+
+  <p class="small">
+    After applying and verifying your edits, download the updated
+    HTML containing both menus. Your original HTML remains untouched.
+  </p>
+
+  <div class="buttons">
+    <button class="blue" id="downloadImage">
+      Download Current Menu Image
+    </button>
+
+    <button class="primary" id="downloadHtml">
+      Download Updated index.html
+    </button>
+
+    <button class="danger" id="deployHtml">Deploy to Live Website</button>
+  </div>
+</section>
+
+</main>
+
+<script>
+"use strict";
+
+// Authorized editor session. This is a lightweight client-side gate, not server-side security.
+if (sessionStorage.getItem("theBlowEditorAuth") !== "ok") {
+  location.replace("signin.html");
+}
+const GITHUB_OWNER = "Sis-Sisco";
+const GITHUB_REPO = "The-Blow-Lounge-Menus";
+const GITHUB_BRANCH = "main";
+const GITHUB_FILE_PATH = "index.html";
+const GITHUB_RAW_URL = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${GITHUB_FILE_PATH}`;
+let githubFileSha = null;
+
+
+const $ = id => document.getElementById(id);
+
+const canvas = $("menuCanvas");
+const ctx = canvas.getContext("2d");
+const wrap = $("canvasWrap");
+const selectionBox = $("selection");
+let originalHTML = "";
+let activeMenu = "food";
+let zoom = 1;
+let userAdjustedZoom = false;
+const touchInput = window.matchMedia("(pointer: coarse)").matches;
+let selectionMode = !touchInput;
+canvas.style.touchAction = selectionMode ? "none" : "pan-y";
+let selection = null;
+let dragStart = null;
+let dragging = false;
+let previewActive = false;
+
+const menus = {
+  food: createMenuState("food-image", "image/webp"),
+  cocktail: createMenuState("cocktails-image", "image/webp")
+};
+
+function createMenuState(id, mime) {
+  return {
+    id,
+    mime,
+    original: null,
+    committed: document.createElement("canvas"),
+    history: [],
+    edits: 0
+  };
+}
+
+function state() {
+  return menus[activeMenu];
+}
+
+function setStatus(message) {
+  $("status").textContent = message;
+}
+
+function cloneCanvas(source) {
+  const result = document.createElement("canvas");
+  result.width = source.width;
+  result.height = source.height;
+  result.getContext("2d").drawImage(source, 0, 0);
+  return result;
+}
+
+function copyCanvas(source, target) {
+  target.width = source.width;
+  target.height = source.height;
+  target.getContext("2d").drawImage(source, 0, 0);
+}
+
+function hasImage(menu) {
+  return menu.original !== null &&
+    menu.committed.width > 0 &&
+    menu.committed.height > 0;
+}
+
+function updateSelectionBox() {
+  if (!selection) {
+    selectionBox.style.display = "none";
+    return;
+  }
+
+  selectionBox.style.display = "block";
+  selectionBox.style.left = selection.x * zoom + "px";
+  selectionBox.style.top = selection.y * zoom + "px";
+  selectionBox.style.width = selection.w * zoom + "px";
+  selectionBox.style.height = selection.h * zoom + "px";
+}
+
+function updateZoom() {
+  if (!canvas.width || !canvas.height) return;
+  canvas.style.width = canvas.width * zoom + "px";
+  canvas.style.height = canvas.height * zoom + "px";
+  wrap.style.width = canvas.width * zoom + "px";
+  wrap.style.height = canvas.height * zoom + "px";
+  updateSelectionBox();
+
+  $("imageInfo").textContent =
+    (activeMenu === "food" ? "Food Menu" : "Cocktail Menu") +
+    " | " + canvas.width + " × " + canvas.height +
+    " | Zoom: " + Math.round(zoom * 100) + "%";
+}
+
+function fitCanvasToStage() {
+  if (!canvas.width) return;
+  const stage = document.querySelector(".stage");
+  const availableWidth = Math.max(180, (stage?.clientWidth || window.innerWidth) - 30);
+  zoom = Math.min(1, availableWidth / canvas.width);
+  userAdjustedZoom = false;
+  updateZoom();
+}
+
+function renderCommitted() {
+  const menu = state();
+  if (!hasImage(menu)) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(menu.committed, 0, 0);
+}
+
+function switchMenu(name) {
+  if (dragging) return;
+
+  activeMenu = name;
+  selection = null;
+  previewActive = false;
+
+  $("foodTab").classList.toggle("active", name === "food");
+  $("cocktailTab").classList.toggle("active", name === "cocktail");
+
+  const menu = state();
+
+  if (!hasImage(menu)) {
+    canvas.width = 0;
+    canvas.height = 0;
+    updateSelectionBox();
+    $("imageInfo").textContent = "Menu not loaded.";
+    setStatus("The menu image is not available yet.");
+    return;
+  }
+
+  canvas.width = menu.committed.width;
+  canvas.height = menu.committed.height;
+
+  renderCommitted();
+  fitCanvasToStage();
+
+  setStatus(
+    (name === "food" ? "Food" : "Cocktail") +
+    " menu ready.\nApplied edits: " + menu.edits +
+    "\nSelect an old price to begin."
+  );
+}
+
+$("foodTab").onclick = () => switchMenu("food");
+$("cocktailTab").onclick = () => switchMenu("cocktail");
+
+function loadImageIntoMenu(name, src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+
+    image.onload = () => {
+      const menu = menus[name];
+      menu.original = image;
+
+      menu.committed.width = image.naturalWidth;
+      menu.committed.height = image.naturalHeight;
+
+      menu.committed.getContext("2d").drawImage(image, 0, 0);
+
+      menu.history = [];
+      menu.edits = 0;
+
+      resolve();
+    };
+
+    image.onerror = () => reject(
+      new Error("Could not load " + name + " image.")
+    );
+
+    image.src = src;
+  });
+}
+
+function resolveMenuImageSource(src) {
+  if (!src) throw new Error("Menu image source is missing.");
+  if (src.startsWith("data:image/")) return src;
+  return new URL(src, GITHUB_RAW_URL).href;
+}
+
+async function loadLatestGitHubHTML() {
+  setStatus("Loading the latest menu from GitHub...");
+  try {
+    const response = await fetch(GITHUB_RAW_URL + "?v=" + Date.now(), { cache: "no-store" });
+    if (!response.ok) throw new Error("GitHub file could not be loaded (HTTP " + response.status + ").");
+    const latestHTML = await response.text();
+    const doc = new DOMParser().parseFromString(latestHTML, "text/html");
+    const food = doc.getElementById("food-image");
+    const cocktail = doc.getElementById("cocktails-image");
+    const foodSrc = food?.getAttribute("src");
+    const cocktailSrc = cocktail?.getAttribute("src");
+    if (!foodSrc) throw new Error("Food menu image was not found in GitHub index.html.");
+    if (!cocktailSrc) throw new Error("Cocktail menu image was not found in GitHub index.html.");
+    await Promise.all([
+      loadImageIntoMenu("food", resolveMenuImageSource(foodSrc)),
+      loadImageIntoMenu("cocktail", resolveMenuImageSource(cocktailSrc))
+    ]);
+    originalHTML = latestHTML;
+    switchMenu(activeMenu);
+    fitCanvasToStage();
+    setStatus("LATEST GITHUB MENU LOADED\nFood and Cocktail menus are ready.\nSelect a menu and start editing prices.");
+    try {
+      const meta = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}?ref=${GITHUB_BRANCH}`, { headers: { "Accept": "application/vnd.github+json" }, cache: "no-store" });
+      if (meta.ok) { const data = await meta.json(); githubFileSha = data.sha || null; }
+    } catch (_) { githubFileSha = null; }
+  } catch (error) {
+    setStatus("Automatic GitHub load failed: " + error.message + "\nCheck your internet connection or GitHub repository file paths.");
+  }
+}
+
+function pointFromEvent(event) {
+  const rect = canvas.getBoundingClientRect();
+
+  return {
+    x: Math.max(0, Math.min(
+      canvas.width,
+      (event.clientX - rect.left) / zoom
+    )),
+    y: Math.max(0, Math.min(
+      canvas.height,
+      (event.clientY - rect.top) / zoom
+    ))
+  };
+}
+
+// Touch-friendly image navigation: one finger pans, two fingers pinch-zoom.
+const stage = document.querySelector(".stage");
+const navPointers = new Map();
+let panStart = null;
+let pinchStart = null;
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const pointerDistance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+stage.addEventListener("pointerdown", event => {
+  if (selectionMode || !hasImage(state()) || event.button !== 0) return;
+  event.preventDefault();
+  stage.setPointerCapture(event.pointerId);
+  navPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  stage.classList.add("is-panning");
+  if (navPointers.size === 1) {
+    panStart = { x: event.clientX, y: event.clientY, left: stage.scrollLeft, top: stage.scrollTop };
+    pinchStart = null;
+  } else if (navPointers.size === 2) {
+    const pts = [...navPointers.values()];
+    const rect = stage.getBoundingClientRect();
+    const centerX = (pts[0].x + pts[1].x) / 2 - rect.left;
+    const centerY = (pts[0].y + pts[1].y) / 2 - rect.top;
+    pinchStart = { distance: Math.max(1, pointerDistance(pts[0], pts[1])), zoom, centerX, centerY, scrollLeft: stage.scrollLeft, scrollTop: stage.scrollTop };
+    panStart = null;
+  }
+});
+
+stage.addEventListener("pointermove", event => {
+  if (!navPointers.has(event.pointerId) || selectionMode) return;
+  event.preventDefault();
+  navPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  if (navPointers.size >= 2 && pinchStart) {
+    const pts = [...navPointers.values()];
+    const nextZoom = clamp(pinchStart.zoom * pointerDistance(pts[0], pts[1]) / pinchStart.distance, .08, 8);
+    const ratio = nextZoom / pinchStart.zoom;
+    zoom = nextZoom;
+    userAdjustedZoom = true;
+    updateZoom();
+    stage.scrollLeft = (pinchStart.scrollLeft + pinchStart.centerX) * ratio - pinchStart.centerX;
+    stage.scrollTop = (pinchStart.scrollTop + pinchStart.centerY) * ratio - pinchStart.centerY;
+  } else if (navPointers.size === 1 && panStart) {
+    stage.scrollLeft = panStart.left - (event.clientX - panStart.x);
+    stage.scrollTop = panStart.top - (event.clientY - panStart.y);
+  }
+});
+
+function endNavigationPointer(event) {
+  navPointers.delete(event.pointerId);
+  if (navPointers.size === 0) {
+    panStart = null; pinchStart = null; stage.classList.remove("is-panning");
+  } else if (navPointers.size === 1) {
+    const remaining = [...navPointers.values()][0];
+    panStart = { x: remaining.x, y: remaining.y, left: stage.scrollLeft, top: stage.scrollTop };
+    pinchStart = null;
+  }
+}
+stage.addEventListener("pointerup", endNavigationPointer);
+stage.addEventListener("pointercancel", endNavigationPointer);
+
+canvas.addEventListener("pointerdown", event => {
+  if (!hasImage(state()) || !selectionMode) return;
+
+  if (previewActive) {
+    renderCommitted();
+    previewActive = false;
+  }
+
+  dragStart = pointFromEvent(event);
+  dragging = true;
+  canvas.setPointerCapture(event.pointerId);
+});
+
+canvas.addEventListener("pointermove", event => {
+  if (!dragging || !dragStart) return;
+
+  const point = pointFromEvent(event);
+
+  selection = {
+    x: Math.min(dragStart.x, point.x),
+    y: Math.min(dragStart.y, point.y),
+    w: Math.abs(point.x - dragStart.x),
+    h: Math.abs(point.y - dragStart.y)
+  };
+
+  updateSelectionBox();
+});
+
+canvas.addEventListener("pointerup", () => {
+  if (!dragging) return;
+
+  dragging = false;
+  dragStart = null;
+
+  if (selection && (selection.w < 2 || selection.h < 2)) {
+    selection = null;
+  }
+
+  updateSelectionBox();
+
+  if (selection) {
+    setStatus(
+      "Price area selected.\n" +
+      "Click PREVIEW CHANGE to see the replacement."
+    );
+  }
+  if (touchInput) {
+    selectionMode = false;
+    canvas.style.touchAction = "pan-y";
+    $("selectMode").textContent = "Select Price Area";
+  }
+});
+
+canvas.addEventListener("pointercancel", () => {
+  dragging = false;
+  dragStart = null;
+  if (touchInput) {
+    selectionMode = false;
+    canvas.style.touchAction = "pan-y";
+    $("selectMode").textContent = "Select Price Area";
+  }
+});
+
+$("zoomIn").onclick = () => {
+  userAdjustedZoom = true;
+  zoom = Math.min(8, zoom + .25);
+  updateZoom();
+};
+
+$("zoomOut").onclick = () => {
+  userAdjustedZoom = true;
+  zoom = Math.max(.08, zoom - .25);
+  updateZoom();
+};
+
+$("resetZoom").onclick = () => {
+  fitCanvasToStage();
+};
+
+$("selectMode").onclick = () => {
+  selectionMode = true;
+  canvas.style.touchAction = "none";
+  $("selectMode").textContent = "Drag to Select";
+  setStatus("Selection mode is active. Drag around the old price, then release.");
+};
+
+window.addEventListener("resize", () => {
+  if (!userAdjustedZoom) fitCanvasToStage();
+});
+
+function drawPriceChange() {
+  if (!hasImage(state()) || !selection) {
+    setStatus("Select the old price area first.");
+    return false;
+  }
+
+  if (!originalHTML) {
+    setStatus("Wait for the latest GitHub menu to finish loading.");
+    return false;
+  }
+
+  const text = $("newPrice").value.trim();
+  const size = Number($("fontSize").value);
+  const offsetX = Number($("offsetX").value);
+  const offsetY = Number($("offsetY").value);
+
+  if (!text || !Number.isFinite(size) || size <= 0 ||
+      !Number.isFinite(offsetX) || !Number.isFinite(offsetY)) {
+    setStatus("Please enter valid price and font settings.");
+    return false;
+  }
+
+  renderCommitted();
+
+  ctx.fillStyle = $("bgColor").value;
+  ctx.fillRect(
+    selection.x,
+    selection.y,
+    selection.w,
+    selection.h
+  );
+
+  ctx.fillStyle = $("textColor").value;
+  ctx.font =
+    $("fontWeight").value + " " +
+    size + "px " +
+    JSON.stringify($("fontFamily").value);
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  ctx.fillText(
+    text,
+    selection.x + selection.w / 2 + offsetX,
+    selection.y + selection.h / 2 + offsetY
+  );
+
+  previewActive = true;
+
+  return true;
+}
+
+$("prepare").onclick = () => {
+  if (drawPriceChange()) {
+    setStatus(
+      "PREVIEW READY\n\n" +
+      "Menu: " + activeMenu + "\n" +
+      "New text: " + $("newPrice").value + "\n\n" +
+      "Inspect carefully, then click DO / APPLY."
+    );
+  }
+};
+
+$("apply").onclick = () => {
+  if (!previewActive) {
+    setStatus("Click PREVIEW CHANGE first.");
+    return;
+  }
+
+  const menu = state();
+
+  menu.history.push(cloneCanvas(menu.committed));
+  copyCanvas(canvas, menu.committed);
+
+  menu.edits++;
+  previewActive = false;
+
+  setStatus(
+    "DO / APPLY COMPLETE\n\n" +
+    "Menu: " + activeMenu + "\n" +
+    "Applied edits: " + menu.edits + "\n\n" +
+    "You may edit another price or switch menus.\n" +
+    "Nothing has been published."
+  );
+};
+
+$("undo").onclick = () => {
+  const menu = state();
+
+  if (previewActive) {
+    renderCommitted();
+    previewActive = false;
+    setStatus("Uncommitted preview discarded.");
+    return;
+  }
+
+  if (!menu.history.length) {
+    setStatus("No applied changes to undo.");
+    return;
+  }
+
+  const previous = menu.history.pop();
+  copyCanvas(previous, menu.committed);
+
+  menu.edits = Math.max(0, menu.edits - 1);
+
+  renderCommitted();
+
+  setStatus(
+    "Last applied edit undone.\n" +
+    "Remaining edits: " + menu.edits
+  );
+};
+
+$("restore").onclick = () => {
+  const menu = state();
+
+  if (!hasImage(menu)) {
+    setStatus("Load the menu first.");
+    return;
+  }
+
+  menu.committed.width = menu.original.naturalWidth;
+  menu.committed.height = menu.original.naturalHeight;
+
+  menu.committed.getContext("2d").drawImage(
+    menu.original, 0, 0
+  );
+
+  menu.history = [];
+  menu.edits = 0;
+  previewActive = false;
+  selection = null;
+
+  renderCommitted();
+  updateSelectionBox();
+
+  setStatus(
+    "Original " + activeMenu +
+    " menu restored.\nAll edits to this menu removed."
+  );
+};
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+$("downloadImage").onclick = () => {
+  const menu = state();
+
+  if (!hasImage(menu) || previewActive) {
+    setStatus("Finish or undo the preview first.");
+    return;
+  }
+
+  const mime = menu.mime;
+
+  menu.committed.toBlob(blob => {
+    if (!blob) {
+      setStatus("Could not export menu image.");
+      return;
+    }
+
+    downloadBlob(
+      blob,
+      activeMenu === "food"
+        ? "the-blow-food-menu-updated.webp"
+        : "the-blow-cocktail-menu-updated.webp"
+    );
+  }, mime, activeMenu === "food" ? .94 : .92);
+};
+
+function replaceImageInHTML(html, imageId, newDataURL) {
+  const escapedId = imageId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(
+    "(<img\\b(?=[^>]*\\bid=[\\\"']" + escapedId +
+    "[\\\"'])[^>]*?\\bsrc=[\\\"'])[^\\\"']+([\\\"'])",
+    "i"
+  );
+  if (!pattern.test(html)) throw new Error("Could not locate menu image: " + imageId);
+  return html.replace(pattern, (_, before, after) => before + newDataURL + after);
+}
+
+function replaceImageSourceInHTML(html, imageId, newSource) {
+  const escapedId = imageId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(
+    "(<img\\b(?=[^>]*\\bid=[\\\"']" + escapedId +
+    "[\\\"'])[^>]*?\\bsrc=[\\\"'])[^\\\"']+([\\\"'])",
+    "i"
+  );
+  if (!pattern.test(html)) throw new Error("Could not locate menu image: " + imageId);
+  return html.replace(pattern, (_, before, after) => before + newSource + after);
+}
+
+$("downloadHtml").onclick = () => {
+  if (!originalHTML) {
+    setStatus("Wait for the latest GitHub menu to finish loading.");
+    return;
+  }
+
+  if (previewActive) {
+    setStatus("Apply or undo the current preview first.");
+    return;
+  }
+
+  if (menus.food.edits === 0 && menus.cocktail.edits === 0) {
+    setStatus("Apply at least one price change first.");
+    return;
+  }
+
+  try {
+    let updatedHTML = originalHTML;
+
+    if (menus.food.edits > 0) {
+      const foodData = menus.food.committed.toDataURL(
+        "image/webp", .94
+      );
+
+      updatedHTML = replaceImageInHTML(
+        updatedHTML,
+        "food-image",
+        foodData
+      );
+    }
+
+    if (menus.cocktail.edits > 0) {
+      const cocktailData = menus.cocktail.committed.toDataURL(
+        "image/webp",
+        .92
+      );
+
+      updatedHTML = replaceImageInHTML(
+        updatedHTML,
+        "cocktails-image",
+        cocktailData
+      );
+    }
+
+    const blob = new Blob(
+      [updatedHTML],
+      { type: "text/html;charset=utf-8" }
+    );
+
+    downloadBlob(blob, "index-updated.html");
+
+    setStatus(
+      "UPDATED HTML DOWNLOADED\n\n" +
+      "Food edits: " + menus.food.edits + "\n" +
+      "Cocktail edits: " + menus.cocktail.edits + "\n\n" +
+      "Open index-updated.html in Chrome.\n" +
+      "Verify both menus before publishing.\n" +
+      "Your live website remains unchanged."
+    );
+  } catch (error) {
+    setStatus("Export error: " + error.message);
+  }
+};
+
+
+
+async function blobToBase64(blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+async function uploadGitHubAsset(path, blob, token, message) {
+  const apiURL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
+  const headers = {
+    "Accept": "application/vnd.github+json",
+    "Authorization": "Bearer " + token,
+    "X-GitHub-Api-Version": "2022-11-28"
+  };
+  let sha;
+  const current = await fetch(apiURL + `?ref=${GITHUB_BRANCH}`, { headers, cache: "no-store" });
+  if (current.ok) {
+    const data = await current.json();
+    sha = data.sha;
+  } else if (current.status !== 404) {
+    throw new Error("Could not check " + path + " (HTTP " + current.status + ").");
+  }
+  const body = {
+    message,
+    content: await blobToBase64(blob),
+    branch: GITHUB_BRANCH
+  };
+  if (sha) body.sha = sha;
+  const put = await fetch(apiURL, {
+    method: "PUT",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const result = await put.json();
+  if (!put.ok) throw new Error(result.message || "GitHub rejected upload of " + path + ".");
+  return result;
+}
+
+$("deployHtml").onclick = async () => {
+  if (!originalHTML) { setStatus("The latest GitHub index.html has not loaded."); return; }
+  if (previewActive) { setStatus("Apply or undo the current preview first."); return; }
+  if (menus.food.edits === 0 && menus.cocktail.edits === 0) { setStatus("Apply at least one price change before deploying."); return; }
+  if (!confirm("CONFIRM DEPLOY\n\nThis will update the selected menu image file(s) in your GitHub repository. Your lightweight index.html and its file name will remain unchanged.\n\nFood edits: " + menus.food.edits + "\nCocktail edits: " + menus.cocktail.edits + "\n\nContinue?")) return;
+  const token = prompt("Enter a GitHub Personal Access Token with Contents: Read and write permission for " + GITHUB_OWNER + "/" + GITHUB_REPO + ".\n\nThe token is used only for this deployment and is not saved.");
+  if (!token) { setStatus("Deploy cancelled: GitHub token was not provided."); return; }
+  try {
+    setStatus("Deploying updated menu image(s) to GitHub. Please wait...");
+    const uploads = [];
+    if (menus.food.edits > 0) {
+      const blob = await new Promise((resolve, reject) => menus.food.committed.toBlob(b => b ? resolve(b) : reject(new Error("Could not prepare the updated food menu image.")), "image/webp", .94));
+      uploads.push(() => uploadGitHubAsset("assets/food-menu.webp", blob, token, "Update The Blow food menu prices"));
+    }
+    if (menus.cocktail.edits > 0) {
+      const blob = await new Promise((resolve, reject) => menus.cocktail.committed.toBlob(b => b ? resolve(b) : reject(new Error("Could not prepare the updated cocktail menu image.")), "image/webp", .92));
+      uploads.push(() => uploadGitHubAsset("assets/cocktail-menu.webp", blob, token, "Update The Blow cocktail menu prices"));
+    }
+    for (const upload of uploads) await upload();
+
+    // Change the asset query strings so browsers/CDNs fetch the newly deployed images.
+    const version = Date.now();
+    let deployedHTML = originalHTML;
+    if (menus.food.edits > 0) {
+      const foodVersionedURL = "assets/food-menu.webp?v=" + version;
+      deployedHTML = replaceImageSourceInHTML(deployedHTML, "food-image", foodVersionedURL);
+      deployedHTML = deployedHTML.replace(/(<link\b(?=[^>]*\brel=["']preload["'])(?=[^>]*\bas=["']image["'])[^>]*\bhref=["'])[^"']*food-menu\.webp(?:\?[^"']*)?(["'])/i, "$1" + foodVersionedURL + "$2");
+    }
+    if (menus.cocktail.edits > 0) deployedHTML = replaceImageSourceInHTML(deployedHTML, "cocktails-image", "assets/cocktail-menu.webp?v=" + version);
+    const indexApiURL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`;
+    const latestIndex = await fetch(indexApiURL + `?ref=${GITHUB_BRANCH}`, {
+      headers: { "Accept": "application/vnd.github+json", "Authorization": "Bearer " + token, "X-GitHub-Api-Version": "2022-11-28" },
+      cache: "no-store"
+    });
+    if (!latestIndex.ok) throw new Error("Could not verify index.html before publishing the new image versions (HTTP " + latestIndex.status + ").");
+    const latestIndexData = await latestIndex.json();
+    const indexBlob = new Blob([deployedHTML], { type: "text/html;charset=utf-8" });
+    const indexPut = await fetch(indexApiURL, {
+      method: "PUT",
+      headers: { "Accept": "application/vnd.github+json", "Authorization": "Bearer " + token, "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Refresh The Blow menu image cache versions", content: await blobToBase64(indexBlob), sha: latestIndexData.sha, branch: GITHUB_BRANCH })
+    });
+    const indexResult = await indexPut.json();
+    if (!indexPut.ok) throw new Error(indexResult.message || "GitHub rejected the index.html cache refresh.");
+    originalHTML = deployedHTML;
+    githubFileSha = indexResult.content?.sha || null;
+
+    for (const name of ["food", "cocktail"]) {
+      const menu = menus[name];
+      if (menu.edits > 0) {
+        const refreshed = new Image();
+        refreshed.src = menu.committed.toDataURL(menu.mime, name === "food" ? .94 : .92);
+        await new Promise((resolve, reject) => { refreshed.onload = resolve; refreshed.onerror = reject; });
+        menu.original = refreshed;
+        menu.history = [];
+        menu.edits = 0;
+      }
+    }
+    setStatus("DEPLOY SUCCESSFUL\nThe updated menu image(s) have been committed to GitHub.\nYour index.html file name is unchanged; its image links were refreshed to prevent stale browser cache.\nThe live website will update after hosting finishes deployment.\nNext time this editor opens, it will load the latest menu images automatically.");
+    alert("Deployment successful. The updated menu image(s) have been committed to GitHub.");
+  } catch (error) {
+    setStatus("DEPLOY FAILED: " + error.message + "\nYour local edits are still available. You can download the updated HTML and try again.");
+    alert("Deployment failed: " + error.message);
+  }
+};
+
+// Load the current repository version automatically on every editor visit.
+loadLatestGitHubHTML();
+</script>
+</body>
+</html>

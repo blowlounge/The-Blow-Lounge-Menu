@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#080808">
+<meta name="robots" content="noindex,nofollow">
+<title>THE BLOW | Authorized Sign In</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#394820;color:#f7efdc;font-family:Arial,Helvetica,sans-serif;padding:20px}
+.login{width:min(100%,390px);padding:30px 25px;background:#10110d;border:1px solid #b78a48;border-radius:12px;box-shadow:0 18px 60px #0008;text-align:center}
+.crown{font-size:27px;color:#e7b95f}
+h1{font-family:Georgia,serif;font-weight:normal;letter-spacing:.16em;color:#e7b95f;margin:8px 0}
+.sub{font-size:12px;letter-spacing:.2em;color:#d7bd86;margin-bottom:25px}
+label{display:block;text-align:left;font-size:13px;margin:14px 0 7px;color:#e8d7b5}
+input{width:100%;padding:12px;border-radius:7px;border:1px solid #806638;background:#22251a;color:#fff;font-size:16px}
+input:disabled{opacity:.55}
+.pw{position:relative}
+.pw input{padding-right:64px}
+.toggle{position:absolute;right:6px;top:6px;width:auto;margin:0;padding:7px 10px;font-size:12px;background:transparent;color:#d7bd86;border:1px solid #806638}
+button{width:100%;margin-top:20px;padding:12px;border:1px solid #fff0ae;border-radius:7px;background:linear-gradient(120deg,#dba83e,#ffe47a,#dba83e);color:#241a08;font-weight:bold;font-size:14px;cursor:pointer}
+button:disabled{opacity:.55;cursor:not-allowed}
+.notice{display:none;margin:0 0 14px;padding:10px 12px;border-radius:7px;background:#2c2a12;border:1px solid #806638;color:#f1dc9c;font-size:13px;line-height:1.5;text-align:left}
+.notice.show{display:block}
+.error{min-height:18px;color:#ff9d8e;font-size:13px;margin-top:13px;line-height:1.5}
+.back{display:inline-block;margin-top:18px;color:#c9b17e;font-size:12px;text-decoration:none}
+</style>
+<script>
+// If a valid editor session already exists, skip the form.
+(function(){try{var ok=sessionStorage.getItem("theBlowEditorAuth")==="ok";var last=Number(sessionStorage.getItem("theBlowEditorLastActivity")||0);var start=Number(sessionStorage.getItem("theBlowEditorSessionStart")||last);if(ok&&last&&Date.now()-last<30*60*1000&&Date.now()-start<8*60*60*1000){location.replace("preview.html");}}catch(e){}})();
+</script>
+</head>
+<body>
+<form class="login" id="loginForm" autocomplete="on">
+<div class="crown">♛</div><h1>THE BLOW</h1><div class="sub">AUTHORIZED MENU EDITOR</div>
+<div class="notice" id="notice" role="status"></div>
+<label for="username">Username</label>
+<input id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+<label for="password">Password</label>
+<div class="pw">
+<input id="password" name="password" type="password" autocomplete="current-password" required>
+<button type="button" class="toggle" id="toggle" aria-label="Show password" aria-pressed="false">Show</button>
+</div>
+<button type="submit" id="submit">SIGN IN</button>
+<div class="error" id="error" role="alert"></div>
+<a class="back" href="index.html">&larr; Back to menu</a>
+</form>
+<script>
+const USERNAME = "blow";
+// SHA-256 digest of the configured password; no plain-text password is stored in this file.
+const PASSWORD_SHA256 = "5720376ab7ef17ca9638ea587ec23d42fcd24071cab3ebe399248916fe09bf70";
+
+const AUTH_KEY = "theBlowEditorAuth";
+const ACTIVITY_KEY = "theBlowEditorLastActivity";
+const START_KEY = "theBlowEditorSessionStart";
+const USER_KEY = "theBlowEditorUser";
+const LOCK_KEY = "theBlowEditorLoginLock";   // shared across tabs of this browser
+const MAX_ATTEMPTS = 5;                       // failed tries before a temporary lock
+const LOCK_STEPS_MS = [30e3, 60e3, 5 * 60e3, 15 * 60e3]; // 30s, 1m, 5m, 15m (stays at 15m)
+
+const $ = id => document.getElementById(id);
+const form = $("loginForm"), errorBox = $("error"), submitBtn = $("submit");
+let lockTimer = null;
+
+// Message shown when the editor sent the user back here.
+(function showReason(){
+  const reason = new URLSearchParams(location.search).get("reason");
+  const messages = {
+    timeout: "You were signed out after 30 minutes of inactivity. Please sign in again.",
+    expired: "Your sign-in reached its 8 hour limit. Please sign in again.",
+    signedout: "You have been signed out."
+  };
+  if (messages[reason]) { $("notice").textContent = messages[reason]; $("notice").classList.add("show"); }
+})();
+
+function readLock() {
+  try { return JSON.parse(localStorage.getItem(LOCK_KEY)) || { fails: 0, until: 0, level: 0 }; }
+  catch (_) { return { fails: 0, until: 0, level: 0 }; }
+}
+function writeLock(lock) { try { localStorage.setItem(LOCK_KEY, JSON.stringify(lock)); } catch (_) {} }
+
+function setFormEnabled(enabled) {
+  submitBtn.disabled = !enabled;
+  $("username").disabled = !enabled;
+  $("password").disabled = !enabled;
+}
+
+function refreshLock() {
+  clearTimeout(lockTimer);
+  const lock = readLock();
+  const left = lock.until - Date.now();
+  if (left > 0) {
+    setFormEnabled(false);
+    const s = Math.ceil(left / 1000);
+    errorBox.textContent = "Too many failed attempts. Try again in " + (s >= 60 ? Math.ceil(s / 60) + " min" : s + " sec") + ".";
+    lockTimer = setTimeout(refreshLock, 1000);
+  } else {
+    setFormEnabled(true);
+    if (lock.until && errorBox.textContent.startsWith("Too many")) errorBox.textContent = "";
+  }
+}
+
+async function sha256(value) {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+// Compare without bailing out at the first different character.
+function safeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+$("toggle").addEventListener("click", () => {
+  const input = $("password");
+  const show = input.type === "password";
+  input.type = show ? "text" : "password";
+  $("toggle").textContent = show ? "Hide" : "Show";
+  $("toggle").setAttribute("aria-pressed", String(show));
+  $("toggle").setAttribute("aria-label", show ? "Hide password" : "Show password");
+});
+
+form.addEventListener("submit", async event => {
+  event.preventDefault();
+  if (readLock().until > Date.now()) { refreshLock(); return; }
+  if (!window.crypto || !crypto.subtle) {
+    errorBox.textContent = "Sign in needs a secure (https) connection. Open the site over https and try again.";
+    return;
+  }
+  setFormEnabled(false);
+  errorBox.textContent = "";
+  const username = $("username").value.trim();
+  const password = $("password").value;
+  let digest = "";
+  try { digest = await sha256(password); } catch (_) {}
+  const good = safeEqual(username, USERNAME) & safeEqual(digest, PASSWORD_SHA256);
+
+  if (good) {
+    writeLock({ fails: 0, until: 0, level: 0 });
+    const now = String(Date.now());
+    sessionStorage.setItem(AUTH_KEY, "ok");
+    sessionStorage.setItem(ACTIVITY_KEY, now);
+    sessionStorage.setItem(START_KEY, now);
+    sessionStorage.setItem(USER_KEY, USERNAME);
+    location.replace("preview.html");
+    return;
+  }
+
+  const lock = readLock();
+  lock.fails += 1;
+  $("password").value = "";
+  if (lock.fails >= MAX_ATTEMPTS) {
+    lock.until = Date.now() + LOCK_STEPS_MS[Math.min(lock.level, LOCK_STEPS_MS.length - 1)];
+    lock.level += 1;
+    lock.fails = 0;
+    writeLock(lock);
+    refreshLock();
+    return;
+  }
+  writeLock(lock);
+  setFormEnabled(true);
+  errorBox.textContent = "Incorrect username or password. " + (MAX_ATTEMPTS - lock.fails) + " attempt(s) left before a short lock.";
+  $("password").focus();
+});
+
+// Keep the lock in sync if another tab changes it.
+window.addEventListener("storage", e => { if (e.key === LOCK_KEY) refreshLock(); });
+refreshLock();
+</script>
+</body>
+</html>
